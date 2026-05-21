@@ -925,7 +925,7 @@ function showSub(name) {
       id === name || (name === 'sub-bar' && id === 'sub-bar-actions')
     );
   });
-  S.joinSub = name;
+  S.joinSub = name.replace(/^sub-/, '');
 }
 
 function startJoin() {
