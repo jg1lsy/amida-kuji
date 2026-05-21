@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>あみだくじ</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --primary: #3b82f6;
+  --primary-dark: #2563eb;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-400: #9ca3af;
+  --gray-600: #4b5563;
+  --gray-900: #111827;
+  --radius: 8px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  background: #f0f4ff;
+  color: var(--gray-900);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+header {
+  width: 100%;
+  background: white;
+  border-bottom: 1px solid var(--gray-200);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+header h1 { font-size: 1.25rem; font-weight: 700; }
+
+#phase-badge {
+  font-size: .75rem;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: white;
+  font-weight: 600;
+}
+
+main {
+  width: 100%;
+  max-width: 640px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+.card-title {
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--gray-600);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 10px;
+}
+
+.field-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.field-row input {
+  flex: 1;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-size: .95rem;
+  outline: none;
+  transition: border-color .15s;
+}
+.field-row input:focus { border-color: var(--primary); }
+.remove-btn {
+  background: none;
+  border: none;
+  color: var(--gray-400);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  line-height: 1;
+}
+.remove-btn:hover { color: var(--danger); }
+
+.add-link {
+  background: none;
+  border: 1px dashed var(--gray-400);
+  border-radius: var(--radius);
+  width: 100%;
+  padding: 7px;
+  color: var(--gray-600);
+  font-size: .9rem;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: all .15s;
+}
+.add-link:hover { border-color: var(--primary); color: var(--primary); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  border: none;
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:not(:disabled):hover { background: var(--primary-dark); }
+.btn-secondary { background: var(--gray-100); color: var(--gray-600); border: 1px solid var(--gray-200); }
+.btn-secondary:not(:disabled):hover { background: var(--gray-200); }
+
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+canvas {
+  width: 100%;
+  display: block;
+  border-radius: var(--radius);
+  cursor: crosshair;
+  touch-action: none;
+  background: #fafbff;
+  border: 1px solid var(--gray-200);
+}
+
+#canvas-msg {
+  text-align: center;
+  font-size: .82rem;
+  color: var(--danger);
+  min-height: 1.4em;
+  margin-top: 6px;
+}
+
+.notice {
+  font-size: .85rem;
+  color: var(--gray-600);
+  background: #eff6ff;
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  border-left: 3px solid var(--primary);
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+
+#participant-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.p-btn {
+  padding: 10px 18px;
+  border-radius: var(--radius);
+  border: 2px solid var(--primary);
+  background: white;
+  color: var(--primary);
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+}
+.p-btn:hover:not(:disabled) { background: var(--primary); color: white; }
+.p-btn.drawn {
+  border-color: var(--gray-400);
+  color: var(--gray-400);
+  background: var(--gray-100);
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+.p-btn:disabled { cursor: not-allowed; }
+
+#result-list { display: flex; flex-direction: column; gap: 8px; }
+.result-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  background: var(--gray-100);
+  border-left: 4px solid var(--gray-400);
+}
+.result-item.winner {
+  background: #fef9c3;
+  border-left-color: var(--warning);
+  font-weight: 700;
+}
+.result-name { flex: 1; }
+.result-arrow { color: var(--gray-400); }
+.result-prize { color: var(--gray-600); }
+.result-item.winner .result-prize { color: #92400e; }
+.winner-badge {
+  font-size: .7rem;
+  background: var(--warning);
+  color: white;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-weight: 700;
+}
+
+#winner-announce {
+  text-align: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border-radius: 12px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #78350f;
+  display: none;
+}
+#winner-announce.show { display: block; }
+
+.phase-section { display: none; }
+.phase-section.active { display: flex; flex-direction: column; gap: 14px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎋 あみだくじ</h1>
+  <span id="phase-badge">セットアップ</span>
+</header>
+
+<main>
+  <!-- ── SETUP ── -->
+  <section id="phase-setup" class="phase-section active">
+    <div class="card">
+      <div class="card-title">参加者</div>
+      <div id="participants-list"></div>
+      <button class="add-link" id="add-participant-btn">＋ 参加者を追加</button>
+    </div>
+    <div class="card">
+      <div class="card-title">結果ラベル（下端に表示）</div>
+      <p class="notice">一番上の項目が「当選」として扱われます。参加者の数だけ入力してください。</p>
+      <div id="prizes-list"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-generate">あみだを生成 →</button>
+    </div>
+  </section>
+
+  <!-- ── ADD-BAR ── -->
+  <section id="phase-add-bar" class="phase-section">
+    <div class="card">
+      <p class="notice">縦線と縦線の間をクリックして横棒を1本追加できます。<br>不要ならそのまま「確定」してください。</p>
+      <canvas id="canvas-addbar"></canvas>
+      <div id="canvas-msg"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-confirm-bar">確定してくじ引きへ →</button>
+      <button class="btn btn-secondary" id="btn-remove-bar" style="display:none">追加した横棒を取り消す</button>
+    </div>
+  </section>
+
+  <!-- ── DRAW ── -->
+  <section id="phase-draw" class="phase-section">
+    <div class="card">
+      <canvas id="canvas-draw"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">名前をクリックしてくじを引く</div>
+      <div id="participant-btns"></div>
+    </div>
+  </section>
+
+  <!-- ── RESULT ── -->
+  <section id="phase-result" class="phase-section">
+    <div id="winner-announce"></div>
+    <div class="card">
+      <div class="card-title">結果一覧</div>
+      <div id="result-list"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-restart">もう一度</button>
+    </div>
+  </section>
+</main>
+
+<script>
+'use strict';
+
+// ─── 定数 ───────────────────────────────
+const MAX_P   = 10;
+const NUM_ROWS = 14;
+const PAD_X   = 28;
+const PAD_TOP = 44;
+const PAD_BOT = 44;
+const COLORS  = ['#3b82f6','#ef4444','#10b981','#f59e0b','#8b5cf6',
+                  '#ec4899','#06b6d4','#84cc16','#f97316','#6366f1'];
+
+// ─── 状態 ───────────────────────────────
+const S = {
+  phase: 'setup',
+  participants: [],   // 参加者名
+  prizes: [],         // 賞品名（インデックスは縦線列に対応）
+  numLines: 0,
+  bars: [],           // [{row, leftCol}]  ランダム横棒
+  addedBar: null,     // {row, leftCol}    ユーザー追加横棒
+  paths: [],          // [{col,row}][]     各参加者の経路（論理座標）
+  results: [],        // 各参加者が到達した列インデックス
+  drawnFlags: [],     // boolean[]
+  animating: false,
+};
+
+// ─── 現在アクティブな Canvas ─────────────
+let cvs = null, ctx = null;
+
+function setCanvas(id) {
+  cvs = document.getElementById(id);
+  ctx = cvs.getContext('2d');
+}
+
+// ─── 座標変換 ────────────────────────────
+function lineX(col) {
+  const w = cvs.width - PAD_X * 2;
+  return PAD_X + col * (S.numLines > 1 ? w / (S.numLines - 1) : 0);
+}
+function rowY(row) {
+  const h = cvs.height - PAD_TOP - PAD_BOT;
+  return PAD_TOP + row * (h / NUM_ROWS);
+}
+// 論理パスをキャンバス座標に変換
+function toXY(path) {
+  return path.map(p => ({ x: lineX(p.col), y: rowY(p.row) }));
+}
+
+// ─── あみだ生成 ──────────────────────────
+function generateBars(n) {
+  // occupied stores column *numbers* already connected by a bar
+  const occupied = Array.from({ length: NUM_ROWS }, () => new Set());
+  const bars = [];
+  for (let row = 0; row < NUM_ROWS; row++) {
+    for (let col = 0; col < n - 1; col++) {
+      // bar at leftCol=col occupies columns col and col+1
+      if (!occupied[row].has(col) && !occupied[row].has(col + 1) && Math.random() < 0.42) {
+        bars.push({ row, leftCol: col });
+        occupied[row].add(col);
+        occupied[row].add(col + 1);
+      }
+    }
+  }
+  return bars;
+}
+
+// ─── 経路探索 ────────────────────────────
+// 論理座標 {col, row} の配列を返す
+function findPath(startCol, allBars) {
+  let col = startCol;
+  const path = [{ col, row: -0.45 }];
+
+  for (let row = 0; row < NUM_ROWS; row++) {
+    let next = col;
+    for (const b of allBars) {
+      if (b.row !== row) continue;
+      if (b.leftCol === col)     { next = col + 1; break; }
+      if (b.leftCol === col - 1) { next = col - 1; break; }
+    }
+    if (next !== col) {
+      path.push({ col, row });
+      path.push({ col: next, row });
+      col = next;
+    } else {
+      path.push({ col, row });
+    }
+  }
+  path.push({ col, row: NUM_ROWS + 0.45 });
+  return { path, resultCol: col };
+}
+
+function computeAllPaths() {
+  const allBars = S.addedBar ? [...S.bars, S.addedBar] : S.bars;
+  S.paths = [];
+  S.results = [];
+  for (let i = 0; i < S.numLines; i++) {
+    const { path, resultCol } = findPath(i, allBars);
+    S.paths.push(path);
+    S.results.push(resultCol);
+  }
+}
+
+// ─── Canvas リサイズ ──────────────────────
+function resizeCanvas(canvas) {
+  const w = canvas.parentElement.clientWidth - 34; // padding 考慮
+  const h = Math.max(280, Math.min(540, S.numLines * 52 + PAD_TOP + PAD_BOT));
+  canvas.width  = Math.max(w, 200);
+  canvas.height = h;
+}
+
+// ─── 描画 ────────────────────────────────
+function draw(finishedPaths, animPts, animT, showPrizes, animColor) {
+  ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+  // 縦線
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([]);
+  for (let i = 0; i < S.numLines; i++) {
+    ctx.beginPath();
+    ctx.moveTo(lineX(i), PAD_TOP);
+    ctx.lineTo(lineX(i), cvs.height - PAD_BOT);
+    ctx.stroke();
+  }
+
+  // ランダム横棒
+  drawBars(S.bars, '#94a3b8', false);
+
+  // ユーザー追加横棒
+  if (S.addedBar) drawBars([S.addedBar], '#3b82f6', S.phase === 'add-bar');
+
+  // 辿り済みパス
+  for (const { pts, color } of finishedPaths) {
+    drawPathPts(pts, color, 3.5, 1);
+  }
+
+  // アニメーション中パス
+  if (animPts) drawPathPts(animPts, animColor ?? ANIM_COLOR, 3.5, animT, true);
+
+  // 参加者名（上）
+  const fs = Math.max(9, Math.min(14, (cvs.width - PAD_X*2) / S.numLines / 2.2));
+  ctx.font = `bold ${fs}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (let i = 0; i < S.numLines; i++) {
+    ctx.fillStyle = '#1e40af';
+    ctx.fillText(S.participants[i] || `P${i+1}`, lineX(i), PAD_TOP / 2);
+  }
+
+  // 賞品名（下）
+  if (showPrizes) {
+    ctx.font = `bold ${fs}px sans-serif`;
+    for (let i = 0; i < S.numLines; i++) {
+      ctx.fillStyle = i === 0 ? '#b45309' : '#475569';
+      ctx.fillText(S.prizes[i] || '', lineX(i), cvs.height - PAD_BOT / 2);
+    }
+  }
+}
+
+function drawBars(bars, color, dashed) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.setLineDash(dashed ? [6, 4] : []);
+  for (const b of bars) {
+    ctx.beginPath();
+    ctx.moveTo(lineX(b.leftCol),     rowY(b.row));
+    ctx.lineTo(lineX(b.leftCol + 1), rowY(b.row));
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+}
+
+// pts: [{x,y}] キャンバス座標; color: null の場合はアニメ色
+const ANIM_COLOR = '#f97316';
+function drawPathPts(pts, color, lw, tRatio, isAnim) {
+  if (pts.length < 2) return;
+  const col = color ?? ANIM_COLOR;
+
+  let total = 0;
+  const segs = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const dx = pts[i+1].x - pts[i].x, dy = pts[i+1].y - pts[i].y;
+    const len = Math.sqrt(dx*dx + dy*dy);
+    segs.push({ from: i, len });
+    total += len;
+  }
+
+  const target = tRatio * total;
+  let acc = 0;
+
+  ctx.beginPath();
+  ctx.strokeStyle = col;
+  ctx.lineWidth = lw;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.moveTo(pts[0].x, pts[0].y);
+
+  let endX = pts[0].x, endY = pts[0].y;
+  for (const seg of segs) {
+    const p0 = pts[seg.from], p1 = pts[seg.from + 1];
+    if (acc + seg.len <= target) {
+      ctx.lineTo(p1.x, p1.y);
+      endX = p1.x; endY = p1.y;
+      acc += seg.len;
+    } else {
+      const t = (target - acc) / seg.len;
+      endX = p0.x + (p1.x - p0.x) * t;
+      endY = p0.y + (p1.y - p0.y) * t;
+      ctx.lineTo(endX, endY);
+      break;
+    }
+  }
+  ctx.stroke();
+
+  if (isAnim) {
+    ctx.beginPath();
+    ctx.arc(endX, endY, 7, 0, Math.PI * 2);
+    ctx.fillStyle = col;
+    ctx.fill();
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+}
+
+// ─── フェーズ管理 ──────────────────────────
+const PHASE_LABELS = {
+  'setup':   'セットアップ',
+  'add-bar': '横棒を追加',
+  'draw':    'くじを引く',
+  'result':  '結果発表',
+};
+
+function transitionTo(phase) {
+  document.querySelectorAll('.phase-section').forEach(el => el.classList.remove('active'));
+  document.getElementById(`phase-${phase}`).classList.add('active');
+  document.getElementById('phase-badge').textContent = PHASE_LABELS[phase] ?? phase;
+  S.phase = phase;
+  if (phase === 'add-bar') initAddBar();
+  if (phase === 'draw')    initDraw();
+  if (phase === 'result')  initResult();
+}
+
+// ─── セットアップ ──────────────────────────
+function makeFieldRow(listId, placeholder, value, showRemove = true) {
+  const list = document.getElementById(listId);
+  const row  = document.createElement('div');
+  row.className = 'field-row';
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.placeholder = placeholder;
+  inp.value = value;
+  row.appendChild(inp);
+  if (showRemove) {
+    const btn = document.createElement('button');
+    btn.className = 'remove-btn';
+    btn.textContent = '×';
+    btn.onclick = () => { list.removeChild(row); syncPrizes(); };
+    row.appendChild(btn);
+  }
+  list.appendChild(row);
+  return inp;
+}
+
+function syncPrizes() {
+  const pCount = document.querySelectorAll('#participants-list .field-row').length;
+  const prList = document.getElementById('prizes-list');
+  while (prList.querySelectorAll('.field-row').length < pCount) makeFieldRow('prizes-list', '結果を入力', 'はずれ', false);
+  while (prList.querySelectorAll('.field-row').length > pCount) prList.removeChild(prList.lastElementChild);
+}
+
+function initSetup() {
+  document.getElementById('participants-list').innerHTML = '';
+  document.getElementById('prizes-list').innerHTML = '';
+  [['参加者A','当選'], ['参加者B','はずれ'], ['参加者C','はずれ']].forEach(([p, pr]) => {
+    makeFieldRow('participants-list', '名前を入力', p);
+    makeFieldRow('prizes-list', '結果を入力', pr, false);
+  });
+}
+
+document.getElementById('add-participant-btn').onclick = () => {
+  if (document.querySelectorAll('#participants-list .field-row').length >= MAX_P) {
+    alert('参加者は最大10名までです'); return;
+  }
+  makeFieldRow('participants-list', '名前を入力', '');
+  syncPrizes();
+};
+
+document.getElementById('btn-generate').onclick = () => {
+  const pInputs  = [...document.querySelectorAll('#participants-list .field-row input')];
+  const prInputs = [...document.querySelectorAll('#prizes-list .field-row input')];
+  if (pInputs.length < 2) { alert('参加者を2名以上入力してください'); return; }
+
+  S.participants = pInputs.map((el, i) => el.value.trim() || `参加者${i+1}`);
+  const rawPrizes = prInputs.map((el, i) => el.value.trim() || `結果${i+1}`);
+  while (rawPrizes.length < S.participants.length) rawPrizes.push('はずれ');
+  S.prizes = rawPrizes.slice(0, S.participants.length);
+
+  S.numLines  = S.participants.length;
+  S.bars      = generateBars(S.numLines);
+  S.addedBar  = null;
+  S.drawnFlags = Array(S.numLines).fill(false);
+  transitionTo('add-bar');
+};
+
+// ─── 横棒追加 ──────────────────────────────
+let addBarPts = []; // 経路プレビュー用（未使用）
+
+function initAddBar() {
+  setCanvas('canvas-addbar');
+  resizeCanvas(cvs);
+  computeAllPaths();
+  renderAddBar();
+  document.getElementById('btn-remove-bar').style.display = 'none';
+  document.getElementById('canvas-msg').textContent = '';
+}
+
+function renderAddBar() {
+  draw([], null, 1, true);
+}
+
+// クリック / タッチで横棒を追加
+function handleAddBarClick(ex, ey) {
+  if (S.phase !== 'add-bar') return;
+  const rect  = cvs.getBoundingClientRect();
+  const scale = cvs.width / rect.width;
+  const cx = (ex - rect.left) * scale;
+  const cy = (ey - rect.top)  * scale;
+
+  if (cx < PAD_X || cx > cvs.width - PAD_X) return;
+  if (cy < PAD_TOP || cy > cvs.height - PAD_BOT) return;
+
+  const colW = (cvs.width - PAD_X * 2) / (S.numLines - 1);
+  const rowH = (cvs.height - PAD_TOP - PAD_BOT) / NUM_ROWS;
+
+  const col = Math.floor((cx - PAD_X) / colW); // 0..numLines-2
+  const row = Math.round((cy - PAD_TOP) / rowH);
+
+  if (col < 0 || col >= S.numLines - 1) return;
+  if (row < 0 || row >= NUM_ROWS) return;
+
+  // 競合チェック：同じ行で隣接列の横棒
+  const allBars = S.bars.concat(S.addedBar ? [S.addedBar] : []);
+  const conflict = allBars.some(b => b.row === row && Math.abs(b.leftCol - col) <= 1);
+  if (conflict) {
+    document.getElementById('canvas-msg').textContent = 'そこには追加できません（隣接する横棒あり）';
+    return;
+  }
+
+  document.getElementById('canvas-msg').textContent = '';
+  S.addedBar = { row, leftCol: col };
+  computeAllPaths(); // プレビューのみ（add-bar フェーズでは描画に反映しない）
+  document.getElementById('btn-remove-bar').style.display = '';
+  renderAddBar();
+}
+
+document.getElementById('canvas-addbar').addEventListener('click', e => {
+  handleAddBarClick(e.clientX, e.clientY);
+});
+document.getElementById('canvas-addbar').addEventListener('touchend', e => {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  handleAddBarClick(t.clientX, t.clientY);
+});
+
+document.getElementById('btn-confirm-bar').onclick = () => transitionTo('draw');
+document.getElementById('btn-remove-bar').onclick  = () => {
+  S.addedBar = null;
+  document.getElementById('btn-remove-bar').style.display = 'none';
+  document.getElementById('canvas-msg').textContent = '';
+  computeAllPaths();
+  renderAddBar();
+};
+
+// ─── くじ引き ──────────────────────────────
+const finishedPaths = []; // {pts, color}[]
+
+function initDraw() {
+  setCanvas('canvas-draw');
+  resizeCanvas(cvs);
+  computeAllPaths();
+  finishedPaths.length = 0;
+  S.animating = false;
+  renderDraw();
+  renderBtns();
+}
+
+function renderDraw(animPts, animT, animColor) {
+  draw(finishedPaths, animPts ?? null, animT ?? 1, finishedPaths.length === S.numLines, animColor);
+}
+
+function renderBtns() {
+  const wrap = document.getElementById('participant-btns');
+  wrap.innerHTML = '';
+  S.participants.forEach((name, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'p-btn' + (S.drawnFlags[i] ? ' drawn' : '');
+    btn.textContent = S.drawnFlags[i] ? `✓ ${name}` : name;
+    btn.disabled = S.drawnFlags[i] || S.animating;
+    btn.onclick = () => startAnim(i);
+    wrap.appendChild(btn);
+  });
+}
+
+function startAnim(i) {
+  if (S.animating || S.drawnFlags[i]) return;
+  S.animating = true;
+  renderBtns(); // 全ボタン無効化
+
+  const pts   = toXY(S.paths[i]);
+  const color = COLORS[i % COLORS.length];
+  let t = 0;
+  const speed = 0.014;
+
+  function loop() {
+    t = Math.min(1, t + speed);
+    setCanvas('canvas-draw');
+    renderDraw(pts, t, color);
+
+    if (t < 1) {
+      requestAnimationFrame(loop);
+    } else {
+      finishedPaths.push({ pts, color });
+      S.drawnFlags[i] = true;
+      S.animating = false;
+      renderDraw();
+      renderBtns();
+      if (S.drawnFlags.every(Boolean)) {
+        setTimeout(() => transitionTo('result'), 900);
+      }
+    }
+  }
+  requestAnimationFrame(loop);
+}
+
+// ─── 結果発表 ──────────────────────────────
+function initResult() {
+  const list    = document.getElementById('result-list');
+  const announce = document.getElementById('winner-announce');
+  list.innerHTML = '';
+  const winners = [];
+
+  S.participants.forEach((name, i) => {
+    const col   = S.results[i];
+    const prize = S.prizes[col] ?? '?';
+    const win   = col === 0; // prizes[0] が当選
+    if (win) winners.push(name);
+
+    const div = document.createElement('div');
+    div.className = 'result-item' + (win ? ' winner' : '');
+    div.innerHTML = `
+      <span class="result-name">${name}</span>
+      <span class="result-arrow">→</span>
+      <span class="result-prize">${prize}</span>
+      ${win ? '<span class="winner-badge">当選</span>' : ''}
+    `;
+    list.appendChild(div);
+  });
+
+  if (winners.length) {
+    announce.textContent = `🎉 当選者: ${winners.join('・')} さん！`;
+    announce.classList.add('show');
+  } else {
+    announce.classList.remove('show');
+  }
+}
+
+document.getElementById('btn-restart').onclick = () => {
+  S.addedBar  = null;
+  S.animating = false;
+  finishedPaths.length = 0;
+  initSetup();
+  transitionTo('setup');
+};
+
+// ─── リサイズ対応 ────────────────────────────
+window.addEventListener('resize', () => {
+  if (S.phase === 'add-bar') {
+    setCanvas('canvas-addbar');
+    resizeCanvas(cvs);
+    renderAddBar();
+  }
+  if (S.phase === 'draw') {
+    setCanvas('canvas-draw');
+    resizeCanvas(cvs);
+    renderDraw();
+  }
+});
+
+// ─── 初期化 ──────────────────────────────────
+initSetup();
+</script>
+</body>
+</html>
