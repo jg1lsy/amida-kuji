@@ -254,13 +254,13 @@ canvas.tap { cursor: crosshair; }
   background: var(--gray-100);
   border-left: 4px solid var(--gray-300);
 }
-.result-item.winner { background: #fef9c3; border-left-color: var(--warning); font-weight: 700; animation: winner-row-pulse 1.2s ease-in-out infinite; }
+.result-item.winner { background: #f5f3ff; border-left-color: #a855f7; font-weight: 700; animation: winner-row-pulse 1.2s ease-in-out infinite; }
 .result-item.winner .result-name { animation: winner-name-blink 0.85s ease-in-out infinite; }
 .result-name { flex: 1; font-weight: 600; }
 .result-arrow { color: var(--gray-400); }
 .winner-tag {
   font-size: .7rem;
-  background: var(--warning);
+  background: #a855f7;
   color: white;
   border-radius: 999px;
   padding: 2px 8px;
@@ -268,8 +268,8 @@ canvas.tap { cursor: crosshair; }
 }
 
 @keyframes winner-row-pulse {
-  0%, 100% { background: #fef9c3; box-shadow: 0 0 0 0 rgba(251,191,36,0); }
-  50%       { background: #fde68a; box-shadow: 0 0 18px 5px rgba(251,191,36,0.5); }
+  0%, 100% { background: #f5f3ff; box-shadow: 0 0 0 0 rgba(168,85,247,0); }
+  50%       { background: #ede9fe; box-shadow: 0 0 22px 6px rgba(168,85,247,0.5); }
 }
 @keyframes winner-name-blink {
   0%, 100% { opacity: 1; }
@@ -1235,25 +1235,56 @@ function startWinnerEffect() {
     tick++;
     useCvs(revCvs, revCtx);
     renderRevCanvas();
-    // 当選パスをゴールド+グロー で重ね描き
-    const glowSize = 10 + 10 * Math.sin(tick * 0.06);
+    const pulse = 0.5 + 0.5 * Math.sin(tick * 0.06); // 0〜1
+    // ── 外側グロー（太く・半透明）──
     revCtx.save();
-    revCtx.shadowColor = '#fbbf24';
-    revCtx.shadowBlur  = glowSize;
-    drawPts(revCtx, winnerEntry.pts, '#f59e0b', 6, 1);
+    revCtx.shadowColor = '#a855f7';
+    revCtx.shadowBlur  = 28 + 18 * pulse;
+    revCtx.globalAlpha = 0.5 + 0.3 * pulse;
+    drawPts(revCtx, winnerEntry.pts, '#c084fc', 12, 1);
     revCtx.restore();
-    // 当選者名ラベルを点滅で重ね描き
-    const alpha = 0.3 + 0.7 * Math.abs(Math.sin(tick * 0.05));
-    const fs = Math.max(9, Math.min(13, (revCvs.width - PAD_X * 2) / S.numLines / 2.4));
+    // ── 内側ネオン線（細く・鮮明）──
     revCtx.save();
-    revCtx.globalAlpha    = alpha;
-    revCtx.font           = `bold ${fs}px sans-serif`;
-    revCtx.textAlign      = 'center';
-    revCtx.textBaseline   = 'middle';
-    revCtx.fillStyle      = '#b45309';
-    revCtx.shadowColor    = '#fbbf24';
-    revCtx.shadowBlur     = 10;
-    revCtx.fillText(winnerName, lx(winnerCol), PAD_TOP / 2);
+    revCtx.shadowColor = '#e879f9';
+    revCtx.shadowBlur  = 10;
+    drawPts(revCtx, winnerEntry.pts, '#f0abfc', 3.5, 1);
+    revCtx.restore();
+    // ── 当選者名：紫ネオン背景パネル＋白文字 ──
+    const bgAlpha = 0.65 + 0.35 * pulse;
+    const fs = Math.max(9, Math.min(13, (revCvs.width - PAD_X * 2) / S.numLines / 2.4));
+    const x  = lx(winnerCol);
+    const y  = PAD_TOP / 2;
+    revCtx.save();
+    revCtx.font = `bold ${fs}px sans-serif`;
+    revCtx.textAlign    = 'center';
+    revCtx.textBaseline = 'middle';
+    const tw  = revCtx.measureText(winnerName).width;
+    const pad = 5, r = 4;
+    const rw = tw + pad * 2, rh = fs + pad * 2;
+    const rx = x - rw / 2, ry2 = y - rh / 2;
+    // 背景ピル（紫グロー）
+    revCtx.globalAlpha = bgAlpha;
+    revCtx.fillStyle   = '#7c3aed';
+    revCtx.shadowColor = '#c084fc';
+    revCtx.shadowBlur  = 14 + 10 * pulse;
+    revCtx.beginPath();
+    revCtx.moveTo(rx + r, ry2);
+    revCtx.lineTo(rx + rw - r, ry2);
+    revCtx.arcTo(rx + rw, ry2,      rx + rw, ry2 + r,      r);
+    revCtx.lineTo(rx + rw, ry2 + rh - r);
+    revCtx.arcTo(rx + rw, ry2 + rh, rx + rw - r, ry2 + rh, r);
+    revCtx.lineTo(rx + r, ry2 + rh);
+    revCtx.arcTo(rx,      ry2 + rh, rx,      ry2 + rh - r, r);
+    revCtx.lineTo(rx, ry2 + r);
+    revCtx.arcTo(rx,      ry2,      rx + r,  ry2,          r);
+    revCtx.closePath();
+    revCtx.fill();
+    // 白文字
+    revCtx.globalAlpha = 1;
+    revCtx.shadowColor = '#ffffff';
+    revCtx.shadowBlur  = 6;
+    revCtx.fillStyle   = '#ffffff';
+    revCtx.fillText(winnerName, x, y);
     revCtx.restore();
     winnerGlowRaf = requestAnimationFrame(loop);
   }
