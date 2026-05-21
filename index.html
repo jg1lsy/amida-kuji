@@ -4,11 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>あみだくじ</title>
+<!-- Firebase v10 compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
   --primary: #3b82f6;
   --primary-dark: #2563eb;
+  --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
   --gray-100: #f3f4f6;
@@ -29,8 +33,6 @@ body {
   flex-direction: column;
   align-items: center;
 }
-
-/* ── Header ── */
 header {
   width: 100%;
   background: white;
@@ -52,10 +54,7 @@ header h1 { font-size: 1.1rem; font-weight: 700; flex: 1; }
   background: var(--primary);
   color: white;
   font-weight: 600;
-  white-space: nowrap;
 }
-
-/* ── Layout ── */
 main {
   width: 100%;
   max-width: 620px;
@@ -88,8 +87,10 @@ main {
   margin-bottom: 10px;
   line-height: 1.65;
 }
+.notice.warn { background: #fffbeb; border-left-color: var(--warning); }
+.notice.ok   { background: #f0fdf4; border-left-color: var(--success); }
 
-/* ── Buttons ── */
+/* Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -102,15 +103,17 @@ main {
   cursor: pointer;
   transition: all .15s;
   line-height: 1;
+  gap: 6px;
 }
 .btn:disabled { opacity: .38; cursor: not-allowed; }
 .btn-primary  { background: var(--primary); color: white; }
 .btn-primary:not(:disabled):hover  { background: var(--primary-dark); }
 .btn-secondary { background: var(--gray-100); color: var(--gray-600); border: 1px solid var(--gray-200); }
 .btn-secondary:not(:disabled):hover { background: var(--gray-200); }
+.btn-success  { background: var(--success); color: white; }
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
 
-/* ── Number selector ── */
+/* Number selector */
 .num-row { display: flex; align-items: center; gap: 14px; }
 .num-btn {
   width: 36px; height: 36px;
@@ -123,45 +126,35 @@ main {
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all .15s;
-  line-height: 1;
 }
 .num-btn:hover { background: var(--primary); color: white; }
 .num-val { font-size: 1.6rem; font-weight: 700; min-width: 2ch; text-align: center; }
 
-/* ── Form fields ── */
+/* Fields */
 .field-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
-.field-row input, .full-input {
+.full-input, .field-row input {
   flex: 1;
   border: 1px solid var(--gray-200);
   border-radius: var(--radius);
   padding: 9px 12px;
   font-size: .95rem;
   outline: none;
-  transition: border-color .15s;
   width: 100%;
 }
-.field-row input:focus, .full-input:focus { border-color: var(--primary); }
+.full-input:focus, .field-row input:focus { border-color: var(--primary); }
 
-/* ── Prize list ── */
-.prize-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
+/* Prize list */
+.prize-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .prize-badge {
   font-size: .72rem;
   padding: 2px 7px;
   border-radius: 999px;
   background: var(--gray-100);
   color: var(--gray-500);
-  white-space: nowrap;
   font-weight: 600;
+  white-space: nowrap;
 }
-.prize-row.first .prize-badge {
-  background: #fef3c7;
-  color: #92400e;
-}
+.prize-row.first .prize-badge { background: #fef3c7; color: #92400e; }
 .prize-row input {
   flex: 1;
   border: 1px solid var(--gray-200);
@@ -173,7 +166,7 @@ main {
 .prize-row.first input { border-color: var(--warning); }
 .prize-row input:focus { border-color: var(--primary); }
 
-/* ── Canvas ── */
+/* Canvas */
 canvas {
   width: 100%;
   display: block;
@@ -182,51 +175,37 @@ canvas {
   background: #fafbff;
   border: 1px solid var(--gray-200);
 }
-canvas.interactive { cursor: crosshair; }
-.canvas-msg {
-  min-height: 1.4em;
-  font-size: .82rem;
-  color: var(--danger);
-  text-align: center;
-  margin-top: 5px;
-}
+canvas.tap { cursor: crosshair; }
+.canvas-msg { min-height: 1.4em; font-size: .82rem; color: var(--danger); text-align: center; margin-top: 5px; }
 
-/* ── Position selection ── */
-.pos-grid {
-  display: grid;
-  gap: 8px;
-  margin-top: 4px;
-}
+/* Position grid */
+.pos-grid { display: grid; gap: 8px; }
 .pos-btn {
   padding: 14px 8px;
   border-radius: var(--radius);
   border: 2px solid var(--primary);
   background: white;
   color: var(--primary);
-  font-size: .9rem;
+  font-size: .88rem;
   font-weight: 700;
   cursor: pointer;
   text-align: center;
   transition: all .2s;
-  line-height: 1.3;
+  white-space: pre-wrap;
+  line-height: 1.35;
 }
-.pos-btn:hover { background: var(--primary); color: white; }
+.pos-btn:hover:not(.taken) { background: var(--primary); color: white; }
 .pos-btn.taken {
   border-color: var(--gray-300);
   background: var(--gray-100);
   color: var(--gray-400);
   cursor: not-allowed;
-  font-size: .78rem;
+  font-size: .76rem;
 }
 
-/* ── Join progress ── */
-.progress-slots {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
-.p-slot {
+/* Progress slots */
+.slots { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.slot {
   font-size: .78rem;
   padding: 4px 10px;
   border-radius: 999px;
@@ -234,10 +213,36 @@ canvas.interactive { cursor: crosshair; }
   background: var(--gray-100);
   color: var(--gray-500);
 }
-.p-slot.done { background: #dcfce7; color: #166534; border-color: #86efac; }
-.p-slot.current { background: #dbeafe; color: #1e40af; border-color: #93c5fd; font-weight: 700; }
+.slot.done    { background: #dcfce7; color: #166534; border-color: #86efac; }
+.slot.waiting { background: #dbeafe; color: #1e40af; border-color: #93c5fd; font-weight: 700; }
 
-/* ── Results ── */
+/* Share URL box */
+.url-box {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: var(--gray-100);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-size: .85rem;
+  color: var(--gray-600);
+  word-break: break-all;
+}
+.url-text { flex: 1; }
+
+/* Spinner */
+.spinner {
+  width: 40px; height: 40px;
+  border: 4px solid var(--gray-200);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  margin: 20px auto;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Results */
 .result-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .result-item {
   display: flex;
@@ -251,7 +256,6 @@ canvas.interactive { cursor: crosshair; }
 .result-item.winner { background: #fef9c3; border-left-color: var(--warning); font-weight: 700; }
 .result-name { flex: 1; font-weight: 600; }
 .result-arrow { color: var(--gray-400); }
-.result-prize { color: var(--gray-600); }
 .winner-tag {
   font-size: .7rem;
   background: var(--warning);
@@ -260,42 +264,78 @@ canvas.interactive { cursor: crosshair; }
   padding: 2px 8px;
   font-weight: 700;
 }
-.winner-announce {
+
+/* Personal result banner */
+.personal-banner {
   text-align: center;
-  padding: 18px;
-  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  padding: 24px 16px;
   border-radius: 12px;
-  font-size: 1.15rem;
+  font-size: 1.3rem;
   font-weight: 800;
-  color: #78350f;
   display: none;
 }
-.winner-announce.show { display: block; }
+.personal-banner.show { display: block; }
+.personal-banner.win  { background: linear-gradient(135deg,#fef3c7,#fde68a); color: #78350f; }
+.personal-banner.lose { background: #f3f4f6; color: #374151; }
 
-/* ── Phase sections ── */
-.phase-section { display: none; }
-.phase-section.active { display: flex; flex-direction: column; gap: 12px; }
+/* Firebase config warning */
+#config-warning {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 14px;
+  max-width: 620px;
+  width: calc(100% - 28px);
+  display: none;
+}
+#config-warning h2 { font-size: 1rem; color: var(--danger); margin-bottom: 8px; }
+#config-warning p  { font-size: .85rem; color: #374151; line-height: 1.7; }
+#config-warning code { background: #f3f4f6; padding: 1px 5px; border-radius: 4px; font-size: .82rem; }
+
+/* Substeps */
 .substep { display: none; }
 .substep.active { display: block; }
+
+/* Phase sections */
+.phase { display: none; }
+.phase.active { display: flex; flex-direction: column; gap: 12px; }
 </style>
 </head>
 <body>
 
+<!-- Firebase 未設定の場合の警告 -->
+<div id="config-warning">
+  <h2>⚙️ Firebase の設定が必要です</h2>
+  <p>
+    複数デバイス対応のため <strong>Firebase Realtime Database</strong> の設定が必要です。<br>
+    <a href="https://firebase.google.com" target="_blank">firebase.google.com</a> でプロジェクトを作成し、
+    <code>index.html</code> 内の <code>FIREBASE_CONFIG</code> を置き換えてください。<br>
+    詳しくは <code>README.md</code> をご覧ください。
+  </p>
+</div>
+
 <header>
   <h1 id="app-title">🎋 あみだくじ</h1>
-  <span id="phase-badge">セットアップ</span>
+  <span id="phase-badge">-</span>
 </header>
 
 <main>
 
-  <!-- ══════════════ SETUP ══════════════ -->
-  <section id="phase-setup" class="phase-section active">
+  <!-- ── Loading ── -->
+  <section id="phase-loading" class="phase active">
+    <div class="card" style="text-align:center">
+      <div class="spinner"></div>
+      <p style="color:var(--gray-500);font-size:.9rem">読み込み中...</p>
+    </div>
+  </section>
 
+  <!-- ── Setup (organizer) ── -->
+  <section id="phase-setup" class="phase">
     <div class="card">
       <div class="card-title">くじのタイトル</div>
-      <input id="input-title" class="full-input" type="text" placeholder="例：ランチ当番決め・幹事選び">
+      <input id="input-title" class="full-input" type="text" placeholder="例：ランチ当番決め">
     </div>
-
     <div class="card">
       <div class="card-title">参加人数</div>
       <div class="num-row">
@@ -305,47 +345,63 @@ canvas.interactive { cursor: crosshair; }
         <span style="font-size:.85rem;color:var(--gray-500)">人</span>
       </div>
     </div>
-
     <div class="card">
       <div class="card-title">結果ラベル（参加人数分）</div>
       <p class="notice">1番目が「当選」扱いになります</p>
       <div id="prizes-list"></div>
     </div>
-
     <div class="btn-row">
       <button class="btn btn-primary" id="btn-create">くじを作る →</button>
     </div>
   </section>
 
-  <!-- ══════════════ JOIN ══════════════ -->
-  <section id="phase-join" class="phase-section">
+  <!-- ── Lobby (organizer waits) ── -->
+  <section id="phase-lobby" class="phase">
+    <div class="card">
+      <div class="card-title">くじができました！参加者にこのURLを共有してください</div>
+      <div class="url-box">
+        <span class="url-text" id="room-url-text"></span>
+        <button class="btn btn-secondary" id="btn-copy-url" style="flex-shrink:0">コピー</button>
+      </div>
+    </div>
+    <div class="card">
+      <div id="lobby-status" style="font-size:.95rem;font-weight:600;margin-bottom:8px"></div>
+      <div class="slots" id="lobby-slots"></div>
+    </div>
+    <p style="font-size:.82rem;color:var(--gray-500);text-align:center">
+      全員が参加すると自動で結果が発表されます
+    </p>
+  </section>
+
+  <!-- ── Join (participant) ── -->
+  <section id="phase-join" class="phase">
 
     <div class="card">
-      <div id="join-heading" style="font-size:1rem;font-weight:700;margin-bottom:6px"></div>
-      <div class="progress-slots" id="progress-slots"></div>
+      <div style="font-size:1rem;font-weight:700" id="join-room-title"></div>
+      <div style="font-size:.85rem;color:var(--gray-500);margin-top:4px" id="join-room-status"></div>
     </div>
 
-    <!-- Sub: name -->
+    <!-- sub: name -->
     <div class="card substep" id="sub-name">
       <div class="card-title">お名前を入力してください</div>
       <div class="field-row">
         <input id="input-name" type="text" placeholder="名前を入力" maxlength="12">
-        <button class="btn btn-primary" id="btn-name-ok">次へ →</button>
+        <button class="btn btn-primary" id="btn-name-ok">次へ</button>
       </div>
     </div>
 
-    <!-- Sub: position -->
+    <!-- sub: position -->
     <div class="card substep" id="sub-pos">
       <div class="card-title">スタート位置を選んでください</div>
       <p class="notice" id="pos-notice"></p>
       <div class="pos-grid" id="pos-grid"></div>
     </div>
 
-    <!-- Sub: bar addition -->
+    <!-- sub: bar -->
     <div class="card substep" id="sub-bar">
       <div class="card-title">横棒を1本追加できます（省略OK）</div>
       <p class="notice" id="bar-notice"></p>
-      <canvas id="canvas-join" class="interactive"></canvas>
+      <canvas id="canvas-join" class="tap"></canvas>
       <div class="canvas-msg" id="canvas-join-msg"></div>
     </div>
 
@@ -356,18 +412,38 @@ canvas.interactive { cursor: crosshair; }
 
   </section>
 
-  <!-- ══════════════ REVEAL ══════════════ -->
-  <section id="phase-reveal" class="phase-section">
-    <div class="winner-announce" id="winner-announce"></div>
+  <!-- ── Waiting (joined, others pending) ── -->
+  <section id="phase-waiting" class="phase">
+    <div class="card" style="text-align:center">
+      <div class="spinner"></div>
+      <div style="font-size:1rem;font-weight:700;margin-bottom:6px" id="waiting-title"></div>
+      <div style="font-size:.9rem;color:var(--gray-500)" id="waiting-status"></div>
+      <div class="slots" id="waiting-slots" style="justify-content:center;margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- ── Reveal ── -->
+  <section id="phase-reveal" class="phase">
+    <div class="personal-banner" id="personal-banner"></div>
     <div class="card">
       <canvas id="canvas-reveal"></canvas>
     </div>
     <div class="card">
-      <div class="card-title">結果一覧</div>
+      <div class="card-title">全員の結果</div>
       <div class="result-list" id="result-list"></div>
     </div>
     <div class="btn-row">
-      <button class="btn btn-primary" id="btn-restart">もう一度</button>
+      <button class="btn btn-secondary" id="btn-new">新しいくじを作る</button>
+    </div>
+  </section>
+
+  <!-- ── Error ── -->
+  <section id="phase-error" class="phase">
+    <div class="card">
+      <div class="notice warn" id="error-msg"></div>
+      <div class="btn-row" style="margin-top:10px">
+        <button class="btn btn-primary" id="btn-go-home">トップへ戻る</button>
+      </div>
     </div>
   </section>
 
@@ -376,9 +452,34 @@ canvas.interactive { cursor: crosshair; }
 <script>
 'use strict';
 
-// ══════════════════════════════════════════
-// 定数
-// ══════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// ★ FIREBASE 設定 ★
+// 1. https://firebase.google.com でプロジェクトを作成
+// 2. Realtime Database を有効化（テストモード）
+// 3. プロジェクトの「ウェブアプリを追加」から設定を取得
+// 4. 以下の YOUR_*** を置き換えてください
+// ════════════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey:            "YOUR_API_KEY",
+  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
+  databaseURL:       "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+  projectId:         "YOUR_PROJECT_ID",
+  storageBucket:     "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId:             "YOUR_APP_ID"
+};
+// ════════════════════════════════════════════════════════════
+
+const FB_READY = FIREBASE_CONFIG.apiKey !== 'YOUR_API_KEY';
+let db = null;
+if (FB_READY) {
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db = firebase.database();
+} else {
+  document.getElementById('config-warning').style.display = 'block';
+}
+
+// ── 定数 ──────────────────────────────────────────────────
 const MAX_P   = 10;
 const MIN_P   = 2;
 const NUM_ROWS = 14;
@@ -387,62 +488,91 @@ const PAD_TOP = 46;
 const PAD_BOT = 46;
 const COLORS  = ['#3b82f6','#ef4444','#10b981','#f59e0b','#8b5cf6',
                  '#ec4899','#06b6d4','#84cc16','#f97316','#6366f1'];
+const SAFE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 紛らわしい文字除去
 
-// ══════════════════════════════════════════
-// 状態
-// ══════════════════════════════════════════
+// ── 状態 ──────────────────────────────────────────────────
 const S = {
-  // setup
-  title: '',
-  numPlayers: 3,
-  prizes: [],       // prizes[col] = prize label
-  numLines: 0,
-  bars: [],         // pre-generated random bars [{row, leftCol}]
+  phase: 'loading',
+  roomId: null,
+  meta: null,       // {title, numPlayers, prizes:[], bars:[]}
+  players: [],      // [{name, col, addedBar|null, joinedAt}] インデックス順
 
-  // join
-  players: [],      // [{name, col, addedBar|null}]
-  takenCols: new Set(),
-  currentIdx: 0,
+  // この端末の情報
+  myEntry: null,    // {playerIdx, name}
+  isOrganizer: false,
 
-  // current participant's pending choices
+  // join フォーム
   pendingName: '',
-  pendingCol: -1,
-  pendingBar: null,
+  pendingCol:  -1,
+  pendingBar:  null,
+  joinSub: 'name',
 
-  // reveal
-  paths: [],        // logical paths per player [{col,row}][]
-  results: [],      // ending column per player
+  // setup フォーム
+  numPlayers: 3,
 
-  phase: 'setup',
+  // reveal 計算結果
+  numLines: 0,
+  paths:   [],
+  results: [],
   animating: false,
 };
 
-// ══════════════════════════════════════════
-// Canvas context references
-// ══════════════════════════════════════════
+// Canvas 参照
 let cvs = null, ctx = null;
 let joinCvs = null, joinCtx = null;
 let revCvs  = null, revCtx  = null;
 
-function useCanvas(c, x) { cvs = c; ctx = x; }
+// Firebase リスナー ref（cleanup 用）
+let playersRef = null;
+let playersListener = null;
 
-// ══════════════════════════════════════════
-// 座標変換
-// ══════════════════════════════════════════
-function lineX(col) {
-  if (S.numLines <= 1) return cvs.width / 2;
-  return PAD_X + col * (cvs.width - PAD_X * 2) / (S.numLines - 1);
+// ── ローカルストレージ ─────────────────────────────────────
+const LS_ORG = id => `amida-org-${id}`;   // 開設者フラグ
+const LS_PLY = id => `amida-ply-${id}`;   // 参加者エントリ
+
+function lsGetEntry(roomId) {
+  try { return JSON.parse(localStorage.getItem(LS_PLY(roomId))); } catch { return null; }
 }
-function rowY(row) {
-  return PAD_TOP + row * (cvs.height - PAD_TOP - PAD_BOT) / NUM_ROWS;
+function lsSetEntry(roomId, entry) {
+  try { localStorage.setItem(LS_PLY(roomId), JSON.stringify(entry)); } catch {}
 }
-function toCanvasPath(logicalPath) {
-  return logicalPath.map(p => ({ x: lineX(p.col), y: rowY(p.row) }));
+function lsIsOrg(roomId) {
+  try { return !!localStorage.getItem(LS_ORG(roomId)); } catch { return false; }
+}
+function lsSetOrg(roomId) {
+  try { localStorage.setItem(LS_ORG(roomId), '1'); } catch {}
 }
 
-// ══════════════════════════════════════════
-// あみだ生成
-// ══════════════════════════════════════════
+// ── URL ──────────────────────────────────────────────────
+function getRoomIdFromUrl() {
+  return new URLSearchParams(location.search).get('room');
+}
+function getRoomUrl(roomId) {
+  return `${location.origin}${location.pathname}?room=${roomId}`;
+}
+function pushRoomUrl(roomId) {
+  history.pushState({}, '', `?room=${roomId}`);
+}
+function genRoomId() {
+  return Array.from({ length: 6 }, () =>
+    SAFE_CHARS[Math.floor(Math.random() * SAFE_CHARS.length)]
+  ).join('');
+}
+
+// ── フェーズ切替 ──────────────────────────────────────────
+const BADGES = {
+  loading: '読込中', setup: 'セットアップ', lobby: '共有待ち',
+  join: '参加', waiting: '参加待ち', reveal: '結果発表', error: 'エラー',
+};
+function goPhase(phase) {
+  document.querySelectorAll('.phase').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById(`phase-${phase}`);
+  if (el) el.classList.add('active');
+  document.getElementById('phase-badge').textContent = BADGES[phase] ?? phase;
+  S.phase = phase;
+}
+
+// ── あみだ生成 ────────────────────────────────────────────
 function generateBars(n) {
   const occ = Array.from({ length: NUM_ROWS }, () => new Set());
   const bars = [];
@@ -458,23 +588,20 @@ function generateBars(n) {
   return bars;
 }
 
-// ランダム棒 + 参加者が追加した棒を合算
-function getAllBars() {
+// ── 経路探索 ──────────────────────────────────────────────
+function allBars() {
   return [
-    ...S.bars,
+    ...(S.meta?.bars ?? []),
     ...S.players.map(p => p.addedBar).filter(Boolean),
   ];
 }
-
-// ══════════════════════════════════════════
-// 経路探索
-// ══════════════════════════════════════════
-function findPath(startCol, allBars) {
+function findPath(startCol) {
   let col = startCol;
   const path = [{ col, row: -0.45 }];
+  const bars = allBars();
   for (let row = 0; row < NUM_ROWS; row++) {
     let next = col;
-    for (const b of allBars) {
+    for (const b of bars) {
       if (b.row !== row) continue;
       if (b.leftCol === col)     { next = col + 1; break; }
       if (b.leftCol === col - 1) { next = col - 1; break; }
@@ -490,38 +617,44 @@ function findPath(startCol, allBars) {
   path.push({ col, row: NUM_ROWS + 0.45 });
   return { path, resultCol: col };
 }
-
-function computeRevealPaths() {
-  const allBars = getAllBars();
+function computePaths() {
   S.paths   = [];
   S.results = [];
   for (const p of S.players) {
-    const { path, resultCol } = findPath(p.col, allBars);
+    const { path, resultCol } = findPath(p.col);
     S.paths.push(path);
     S.results.push(resultCol);
   }
 }
 
-// ══════════════════════════════════════════
-// Canvas リサイズ
-// ══════════════════════════════════════════
-function fitCanvas(canvas) {
+// ── 座標変換 ──────────────────────────────────────────────
+function lx(col) {
+  if (S.numLines <= 1) return cvs.width / 2;
+  return PAD_X + col * (cvs.width - PAD_X * 2) / (S.numLines - 1);
+}
+function ry(row) {
+  return PAD_TOP + row * (cvs.height - PAD_TOP - PAD_BOT) / NUM_ROWS;
+}
+function toXY(path) {
+  return path.map(p => ({ x: lx(p.col), y: ry(p.row) }));
+}
+
+// ── Canvas ────────────────────────────────────────────────
+function useCvs(c, x) { cvs = c; ctx = x; }
+function fitCvs(canvas) {
   const w = Math.max(canvas.parentElement.clientWidth - 34, 180);
   const h = Math.max(260, Math.min(520, S.numLines * 50 + PAD_TOP + PAD_BOT));
   canvas.width  = w;
   canvas.height = h;
 }
 
-// ══════════════════════════════════════════
-// 描画
-// ══════════════════════════════════════════
 /*
- * opts:
- *   showPrizes    bool   下端ラベル表示
- *   colLabels     string[]  上端ラベル(列ごと)
- *   highlightCol  int    現在参加者の列をハイライト
- *   pendingBar    {row,leftCol}|null  追加中の棒（点線）
- *   finishedPaths [{pts,color}]  reveal用
+ * drawAmida opts:
+ *   showPrizes    bool
+ *   colLabels     string[]   各列上端ラベル
+ *   highlightCol  int        現在選択列
+ *   pendingBar    obj|null   追加中横棒（点線）
+ *   finishedPaths [{pts,color}]
  *   animPts       [{x,y}]|null
  *   animColor     string
  *   animT         0-1
@@ -537,172 +670,136 @@ function drawAmida(canvas, context, opts = {}) {
     animColor     = '#f97316',
     animT         = 1,
   } = opts;
-
   const c = context;
   c.clearRect(0, 0, canvas.width, canvas.height);
 
   // 縦線
   for (let i = 0; i < S.numLines; i++) {
     c.beginPath();
-    c.strokeStyle = (i === highlightCol) ? '#3b82f6' : '#cbd5e1';
-    c.lineWidth   = (i === highlightCol) ? 3.5 : 2;
+    c.strokeStyle = i === highlightCol ? '#3b82f6' : '#cbd5e1';
+    c.lineWidth   = i === highlightCol ? 3.5 : 2;
     c.setLineDash([]);
-    c.moveTo(lineX(i), PAD_TOP);
-    c.lineTo(lineX(i), canvas.height - PAD_BOT);
+    c.moveTo(lx(i), PAD_TOP);
+    c.lineTo(lx(i), canvas.height - PAD_BOT);
     c.stroke();
   }
 
-  // ランダム棒 + 参加者棒（確定済み）
+  // 横棒（確定済み）
   c.strokeStyle = '#94a3b8';
   c.lineWidth   = 3;
   c.setLineDash([]);
-  for (const b of getAllBars()) {
+  for (const b of allBars()) {
     c.beginPath();
-    c.moveTo(lineX(b.leftCol),     rowY(b.row));
-    c.lineTo(lineX(b.leftCol + 1), rowY(b.row));
+    c.moveTo(lx(b.leftCol),     ry(b.row));
+    c.lineTo(lx(b.leftCol + 1), ry(b.row));
     c.stroke();
   }
 
-  // 追加中の棒（点線ブルー）
+  // 追加中横棒（点線青）
   if (pendingBar) {
     c.strokeStyle = '#3b82f6';
     c.lineWidth   = 3;
     c.setLineDash([6, 4]);
     c.beginPath();
-    c.moveTo(lineX(pendingBar.leftCol),     rowY(pendingBar.row));
-    c.lineTo(lineX(pendingBar.leftCol + 1), rowY(pendingBar.row));
+    c.moveTo(lx(pendingBar.leftCol),     ry(pendingBar.row));
+    c.lineTo(lx(pendingBar.leftCol + 1), ry(pendingBar.row));
     c.stroke();
     c.setLineDash([]);
   }
 
-  // reveal 用：辿り済みパス
-  for (const { pts, color } of finishedPaths) {
-    drawPts(c, pts, color, 3.5, 1, false);
-  }
+  // 辿り済みパス
+  for (const { pts, color } of finishedPaths) drawPts(c, pts, color, 3.5, 1);
 
-  // reveal 用：アニメーション中パス
+  // アニメ中パス
   if (animPts) drawPts(c, animPts, animColor, 3.5, animT, true);
 
-  // 上端ラベル
-  const n  = S.numLines;
-  const fs = Math.max(9, Math.min(13, (canvas.width - PAD_X * 2) / n / 2.4));
+  // 上端ラベル（参加者名）
+  const fs = Math.max(9, Math.min(13, (canvas.width - PAD_X * 2) / S.numLines / 2.4));
   c.font         = `bold ${fs}px sans-serif`;
   c.textAlign    = 'center';
   c.textBaseline = 'middle';
-  for (let i = 0; i < n; i++) {
-    const label = colLabels[i] || '';
+  for (let i = 0; i < S.numLines; i++) {
+    const label = colLabels[i];
     if (!label) continue;
-    // 色：ハイライト列は青、その他は参加者カラー
     if (i === highlightCol) {
       c.fillStyle = '#1d4ed8';
     } else {
       const pIdx = S.players.findIndex(p => p.col === i);
       c.fillStyle = pIdx >= 0 ? COLORS[pIdx % COLORS.length] : '#94a3b8';
     }
-    c.fillText(label, lineX(i), PAD_TOP / 2);
+    c.fillText(label, lx(i), PAD_TOP / 2);
   }
 
   // 下端ラベル（賞品）
   if (showPrizes) {
     c.font = `bold ${fs}px sans-serif`;
-    for (let i = 0; i < n; i++) {
+    for (let i = 0; i < S.numLines; i++) {
       c.fillStyle = i === 0 ? '#b45309' : '#475569';
-      c.fillText(S.prizes[i] || '', lineX(i), canvas.height - PAD_BOT / 2);
+      c.fillText(S.meta.prizes[i] ?? '', lx(i), canvas.height - PAD_BOT / 2);
     }
   }
 }
 
-function drawPts(c, pts, color, lw, tRatio, withDot) {
+function drawPts(c, pts, color, lw, tRatio, withDot = false) {
   if (pts.length < 2) return;
   let total = 0;
   const segs = [];
   for (let i = 0; i < pts.length - 1; i++) {
     const dx = pts[i+1].x - pts[i].x, dy = pts[i+1].y - pts[i].y;
     segs.push({ from: i, len: Math.sqrt(dx*dx + dy*dy) });
-    total += segs[segs.length - 1].len;
+    total += segs[segs.length-1].len;
   }
   const target = tRatio * total;
   let acc = 0, ex = pts[0].x, ey = pts[0].y;
-
   c.beginPath();
-  c.strokeStyle = color;
-  c.lineWidth   = lw;
-  c.lineCap     = 'round';
-  c.lineJoin    = 'round';
+  c.strokeStyle = color; c.lineWidth = lw;
+  c.lineCap = 'round'; c.lineJoin = 'round';
   c.moveTo(pts[0].x, pts[0].y);
-
   for (const seg of segs) {
-    const p0 = pts[seg.from], p1 = pts[seg.from + 1];
+    const p0 = pts[seg.from], p1 = pts[seg.from+1];
     if (acc + seg.len <= target) {
-      c.lineTo(p1.x, p1.y);
-      ex = p1.x; ey = p1.y;
-      acc += seg.len;
+      c.lineTo(p1.x, p1.y); ex = p1.x; ey = p1.y; acc += seg.len;
     } else {
       const t = (target - acc) / seg.len;
-      ex = p0.x + (p1.x - p0.x) * t;
-      ey = p0.y + (p1.y - p0.y) * t;
-      c.lineTo(ex, ey);
-      break;
+      ex = p0.x + (p1.x-p0.x)*t; ey = p0.y + (p1.y-p0.y)*t;
+      c.lineTo(ex, ey); break;
     }
   }
   c.stroke();
-
   if (withDot) {
     c.beginPath();
-    c.arc(ex, ey, 7, 0, Math.PI * 2);
-    c.fillStyle = color;
-    c.fill();
-    c.strokeStyle = 'white';
-    c.lineWidth = 2;
-    c.stroke();
+    c.arc(ex, ey, 7, 0, Math.PI*2);
+    c.fillStyle = color; c.fill();
+    c.strokeStyle = 'white'; c.lineWidth = 2; c.stroke();
   }
 }
 
-// ══════════════════════════════════════════
-// フェーズ切替
-// ══════════════════════════════════════════
-const BADGES = { setup: 'セットアップ', join: '参加中', reveal: '結果発表' };
-
-function goPhase(phase) {
-  document.querySelectorAll('.phase-section').forEach(el => el.classList.remove('active'));
-  document.getElementById(`phase-${phase}`).classList.add('active');
-  document.getElementById('phase-badge').textContent = BADGES[phase] ?? phase;
-  S.phase = phase;
-  if (phase === 'join')   initJoin();
-  if (phase === 'reveal') initReveal();
-}
-
-// ══════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
 // SETUP フェーズ
-// ══════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
 function renderPrizes() {
   const list = document.getElementById('prizes-list');
   list.innerHTML = '';
   for (let i = 0; i < S.numPlayers; i++) {
-    const row = document.createElement('div');
+    const row  = document.createElement('div');
     row.className = 'prize-row' + (i === 0 ? ' first' : '');
     const badge = document.createElement('span');
     badge.className = 'prize-badge';
-    badge.textContent = i === 0 ? '当選' : `${i + 1}番`;
+    badge.textContent = i === 0 ? '当選' : `${i+1}番`;
     const inp = document.createElement('input');
     inp.type = 'text';
-    inp.placeholder = i === 0 ? '当選（例：幹事）' : 'はずれ（例：なし）';
-    inp.value = S.prizes[i] ?? (i === 0 ? '当選' : 'はずれ');
+    inp.placeholder = i === 0 ? '当選（例：幹事）' : 'はずれ';
+    inp.value = i === 0 ? '当選' : 'はずれ';
     row.append(badge, inp);
     list.appendChild(row);
   }
 }
-
 function initSetup() {
   S.numPlayers = 3;
-  S.prizes     = [];
-  S.players    = [];
-  S.takenCols  = new Set();
-  S.currentIdx = 0;
-  S.animating  = false;
   document.getElementById('input-title').value = '';
   document.getElementById('num-val').textContent = S.numPlayers;
   renderPrizes();
+  goPhase('setup');
 }
 
 document.getElementById('btn-minus').onclick = () => {
@@ -718,76 +815,139 @@ document.getElementById('btn-plus').onclick = () => {
   renderPrizes();
 };
 
-document.getElementById('btn-create').onclick = () => {
-  const t = document.getElementById('input-title').value.trim();
-  S.title = t || 'あみだくじ';
-  document.getElementById('app-title').textContent = `🎋 ${S.title}`;
-  document.title = S.title;
+document.getElementById('btn-create').onclick = async () => {
+  if (!FB_READY) { alert('Firebase の設定が必要です。README.md をご覧ください。'); return; }
+  const title = document.getElementById('input-title').value.trim() || 'あみだくじ';
+  const prizes = [...document.querySelectorAll('#prizes-list .prize-row input')]
+    .map((el, i) => el.value.trim() || (i === 0 ? '当選' : 'はずれ'));
 
-  const inputs = [...document.querySelectorAll('#prizes-list .prize-row input')];
-  S.prizes   = inputs.map((el, i) => el.value.trim() || (i === 0 ? '当選' : 'はずれ'));
-  S.numLines = S.numPlayers;
-  S.bars     = generateBars(S.numLines);
-
-  S.players    = [];
-  S.takenCols  = new Set();
-  S.currentIdx = 0;
-  S.animating  = false;
-
-  goPhase('join');
+  const roomId = genRoomId();
+  const meta = {
+    title,
+    numPlayers: S.numPlayers,
+    prizes,
+    bars: generateBars(S.numPlayers),
+    createdAt: Date.now(),
+  };
+  try {
+    await db.ref(`rooms/${roomId}`).set({ meta });
+    lsSetOrg(roomId);
+    S.roomId = roomId;
+    S.meta   = meta;
+    S.numLines = meta.numPlayers;
+    S.players  = [];
+    S.isOrganizer = true;
+    S.myEntry = null;
+    document.getElementById('app-title').textContent = `🎋 ${title}`;
+    document.title = title;
+    pushRoomUrl(roomId);
+    startLobby(roomId);
+  } catch (e) {
+    alert('くじの作成に失敗しました: ' + e.message);
+  }
 };
 
-// ══════════════════════════════════════════
-// JOIN フェーズ
-// ══════════════════════════════════════════
-function showSub(name) {
-  const ids = ['sub-name', 'sub-pos', 'sub-bar', 'sub-bar-actions'];
-  ids.forEach(id => {
-    const el = document.getElementById(id);
-    el.classList.toggle('active', id === name || (name === 'sub-bar' && id === 'sub-bar-actions'));
-  });
+// ══════════════════════════════════════════════════════════
+// LOBBY フェーズ（開設者）
+// ══════════════════════════════════════════════════════════
+function startLobby(roomId) {
+  const url = getRoomUrl(roomId);
+  document.getElementById('room-url-text').textContent = url;
+  updateLobbySlots();
+  goPhase('lobby');
+  listenPlayers(roomId);
 }
 
-function initJoin() {
-  S.pendingName = '';
-  S.pendingCol  = -1;
-  S.pendingBar  = null;
-  updateJoinHeader();
-  renderProgress();
-  showSub('sub-name');
-  document.getElementById('input-name').value = '';
-  document.getElementById('btn-undo-bar').style.display = 'none';
-  setTimeout(() => document.getElementById('input-name').focus(), 80);
-}
+document.getElementById('btn-copy-url').onclick = () => {
+  navigator.clipboard.writeText(getRoomUrl(S.roomId))
+    .then(() => {
+      const btn = document.getElementById('btn-copy-url');
+      btn.textContent = 'コピー済み✓';
+      setTimeout(() => { btn.textContent = 'コピー'; }, 1800);
+    })
+    .catch(() => alert(getRoomUrl(S.roomId)));
+};
 
-function updateJoinHeader() {
-  document.getElementById('join-heading').textContent =
-    `${S.currentIdx + 1} 人目の参加者の番です`;
-}
-
-function renderProgress() {
-  const wrap = document.getElementById('progress-slots');
+function updateLobbySlots() {
+  const n    = S.meta.numPlayers;
+  const done = S.players.length;
+  document.getElementById('lobby-status').textContent = `${done} / ${n} 人が参加しました`;
+  const wrap = document.getElementById('lobby-slots');
   wrap.innerHTML = '';
-  for (let i = 0; i < S.numPlayers; i++) {
-    const slot = document.createElement('div');
-    const isCurrent = i === S.currentIdx;
-    const isDone    = i < S.currentIdx;
-    slot.className  = 'p-slot' + (isCurrent ? ' current' : isDone ? ' done' : '');
-    slot.textContent = isDone
-      ? `✓ ${S.players[i].name}`
-      : isCurrent
-        ? `▶ 参加者${i + 1}`
-        : `参加者${i + 1}`;
-    wrap.appendChild(slot);
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement('div');
+    s.className = 'slot' + (i < done ? ' done' : '');
+    s.textContent = i < done ? `✓ ${S.players[i].name}` : `待機中…`;
+    wrap.appendChild(s);
   }
 }
 
-// ── 名前確定 ──
+// ══════════════════════════════════════════════════════════
+// Firebase リスナー（全フェーズ共通）
+// ══════════════════════════════════════════════════════════
+function listenPlayers(roomId) {
+  if (playersRef && playersListener) {
+    playersRef.off('value', playersListener);
+  }
+  playersRef = db.ref(`rooms/${roomId}/players`);
+  playersListener = playersRef.on('value', snap => {
+    const data = snap.val() || {};
+    // オブジェクトのキー（"0","1",...）順に並べる
+    S.players = Object.keys(data)
+      .sort((a, b) => Number(a) - Number(b))
+      .map(k => data[k]);
+    onPlayersUpdated();
+  });
+}
+
+function onPlayersUpdated() {
+  const total = S.meta?.numPlayers ?? 0;
+  const done  = S.players.length;
+  const allIn = done >= total;
+
+  if (S.phase === 'lobby')   updateLobbySlots();
+  if (S.phase === 'join')    updatePosBtns();
+  if (S.phase === 'waiting') updateWaiting();
+
+  if (allIn && S.phase !== 'reveal') {
+    setTimeout(() => goReveal(), 300);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// JOIN フェーズ（参加者）
+// ══════════════════════════════════════════════════════════
+function showSub(name) {
+  ['sub-name','sub-pos','sub-bar','sub-bar-actions'].forEach(id => {
+    document.getElementById(id).classList.toggle(
+      'active',
+      id === name || (name === 'sub-bar' && id === 'sub-bar-actions')
+    );
+  });
+  S.joinSub = name;
+}
+
+function startJoin() {
+  S.pendingName = '';
+  S.pendingCol  = -1;
+  S.pendingBar  = null;
+  document.getElementById('join-room-title').textContent = `🎋 ${S.meta.title}`;
+  document.getElementById('join-room-status').textContent =
+    `参加人数: ${S.meta.numPlayers}人`;
+  document.getElementById('input-name').value = '';
+  document.getElementById('btn-undo-bar').style.display = 'none';
+  document.getElementById('canvas-join-msg').textContent = '';
+  showSub('sub-name');
+  goPhase('join');
+  setTimeout(() => document.getElementById('input-name').focus(), 80);
+}
+
+// 名前確定
 function confirmName() {
   const name = document.getElementById('input-name').value.trim();
   if (!name) { document.getElementById('input-name').focus(); return; }
   S.pendingName = name;
-  renderPosButtons();
+  updatePosBtns();
   showSub('sub-pos');
 }
 document.getElementById('btn-name-ok').onclick = confirmName;
@@ -795,65 +955,58 @@ document.getElementById('input-name').addEventListener('keydown', e => {
   if (e.key === 'Enter') confirmName();
 });
 
-// ── 位置選択 ──
-function renderPosButtons() {
+// 位置ボタン
+function updatePosBtns() {
+  if (S.joinSub !== 'pos') return;
+  const takenCols = new Set(S.players.map(p => p.col));
+  const grid = document.getElementById('pos-grid');
   document.getElementById('pos-notice').textContent =
     `${S.pendingName} さん、スタート位置を選んでください`;
-
-  const grid = document.getElementById('pos-grid');
-  grid.innerHTML = '';
-  // 列数に応じてグリッド列数を調整
   grid.style.gridTemplateColumns = `repeat(${Math.min(S.numLines, 5)}, 1fr)`;
-
-  for (let i = 0; i < S.numLines; i++) {
-    const btn = document.createElement('button');
-    const taken = S.takenCols.has(i);
+  // 既存ボタンを更新（なければ生成）
+  if (grid.children.length !== S.numLines) {
+    grid.innerHTML = '';
+    for (let i = 0; i < S.numLines; i++) {
+      const btn = document.createElement('button');
+      btn.dataset.col = i;
+      btn.onclick = () => selectPos(i);
+      grid.appendChild(btn);
+    }
+  }
+  [...grid.children].forEach((btn, i) => {
+    const taken = takenCols.has(i);
+    const who   = S.players.find(p => p.col === i);
     btn.className = 'pos-btn' + (taken ? ' taken' : '');
     btn.disabled  = taken;
-    if (taken) {
-      const who = S.players.find(p => p.col === i);
-      btn.textContent = who ? `${who.name}\n参加済み` : '参加済み';
-    } else {
-      btn.textContent = `位置 ${i + 1}`;
-    }
-    btn.style.whiteSpace = 'pre-wrap';
-    btn.onclick = () => selectPos(i);
-    grid.appendChild(btn);
-  }
+    btn.textContent = taken ? `${who?.name ?? '参加済み'}\n参加済み` : `位置 ${i+1}`;
+  });
 }
 
 function selectPos(col) {
   S.pendingCol = col;
-  S.pendingBar = null;
   initBarStep();
   showSub('sub-bar');
 }
 
-// ── 横棒追加 ──
+// 横棒追加ステップ
 function initBarStep() {
   joinCvs = document.getElementById('canvas-join');
   joinCtx = joinCvs.getContext('2d');
-  useCanvas(joinCvs, joinCtx);
-  fitCanvas(joinCvs);
-
+  useCvs(joinCvs, joinCtx);
+  fitCvs(joinCvs);
+  S.pendingBar = null;
   document.getElementById('bar-notice').textContent =
-    `${S.pendingName} さん、横棒を1本タップで追加できます（省略して「参加する」もOK）`;
+    `${S.pendingName} さん、横棒を1本タップで追加できます（省略してそのまま参加もOK）`;
   document.getElementById('canvas-join-msg').textContent = '';
   document.getElementById('btn-undo-bar').style.display = 'none';
-
   renderJoinCanvas();
 }
-
 function renderJoinCanvas() {
-  useCanvas(joinCvs, joinCtx);
-
-  // 各列の上端ラベルを作成
+  useCvs(joinCvs, joinCtx);
   const colLabels = Array.from({ length: S.numLines }, (_, i) => {
     if (i === S.pendingCol) return S.pendingName;
-    const p = S.players.find(pl => pl.col === i);
-    return p ? p.name : '';
+    return S.players.find(p => p.col === i)?.name ?? '';
   });
-
   drawAmida(joinCvs, joinCtx, {
     showPrizes:   false,
     colLabels,
@@ -862,46 +1015,32 @@ function renderJoinCanvas() {
   });
 }
 
-// クリック / タッチ → 横棒スナップ
 function handleJoinClick(ex, ey) {
-  if (S.phase !== 'join') return;
-  useCanvas(joinCvs, joinCtx);
-
+  if (S.joinSub !== 'bar') return;
+  useCvs(joinCvs, joinCtx);
   const rect  = joinCvs.getBoundingClientRect();
   const scale = joinCvs.width / rect.width;
   const cx    = (ex - rect.left) * scale;
   const cy    = (ey - rect.top)  * scale;
-
   if (cx < PAD_X || cx > joinCvs.width - PAD_X) return;
   if (cy < PAD_TOP || cy > joinCvs.height - PAD_BOT) return;
-
   const colW = (joinCvs.width  - PAD_X * 2) / (S.numLines - 1);
   const rowH = (joinCvs.height - PAD_TOP - PAD_BOT) / NUM_ROWS;
-  const col  = Math.floor((cx - PAD_X) / colW);   // 0..numLines-2
+  const col  = Math.floor((cx - PAD_X) / colW);
   const row  = Math.round((cy - PAD_TOP) / rowH);
-
-  if (col < 0 || col >= S.numLines - 1) return;
-  if (row < 0 || row >= NUM_ROWS) return;
-
-  // 競合チェック（pendingBar は置き換え対象なので除外）
-  const conflict = getAllBars().some(b =>
-    b.row === row && Math.abs(b.leftCol - col) <= 1
-  );
+  if (col < 0 || col >= S.numLines - 1 || row < 0 || row >= NUM_ROWS) return;
+  // 競合チェック（pendingBar は置き換えなので除外）
+  const conflict = allBars().some(b => b.row === row && Math.abs(b.leftCol - col) <= 1);
   if (conflict) {
-    document.getElementById('canvas-join-msg').textContent =
-      '⚠ そこには追加できません（隣接する横棒あり）';
+    document.getElementById('canvas-join-msg').textContent = '⚠ そこには追加できません（隣接する横棒あり）';
     return;
   }
-
   document.getElementById('canvas-join-msg').textContent = '';
   S.pendingBar = { row, leftCol: col };
   document.getElementById('btn-undo-bar').style.display = '';
   renderJoinCanvas();
 }
-
-document.getElementById('canvas-join').addEventListener('click', e => {
-  handleJoinClick(e.clientX, e.clientY);
-});
+document.getElementById('canvas-join').addEventListener('click', e => handleJoinClick(e.clientX, e.clientY));
 document.getElementById('canvas-join').addEventListener('touchend', e => {
   e.preventDefault();
   const t = e.changedTouches[0];
@@ -915,64 +1054,98 @@ document.getElementById('btn-undo-bar').onclick = () => {
   renderJoinCanvas();
 };
 
-// ── 参加確定 ──
-document.getElementById('btn-join-confirm').onclick = () => {
-  S.players.push({
-    name:     S.pendingName,
-    col:      S.pendingCol,
-    addedBar: S.pendingBar,
-  });
-  S.takenCols.add(S.pendingCol);
-  S.currentIdx++;
-
-  if (S.currentIdx >= S.numPlayers) {
-    goPhase('reveal');
-  } else {
-    // 次の参加者へ
-    S.pendingName = '';
-    S.pendingCol  = -1;
-    S.pendingBar  = null;
-    document.getElementById('input-name').value = '';
-    document.getElementById('btn-undo-bar').style.display = 'none';
-    document.getElementById('canvas-join-msg').textContent = '';
-    updateJoinHeader();
-    renderProgress();
-    showSub('sub-name');
-    setTimeout(() => document.getElementById('input-name').focus(), 80);
+// 参加確定（Firebase transaction）
+document.getElementById('btn-join-confirm').onclick = async () => {
+  const btn = document.getElementById('btn-join-confirm');
+  btn.disabled = true;
+  btn.textContent = '送信中…';
+  try {
+    let myIdx = -1;
+    const { committed } = await db.ref(`rooms/${S.roomId}/players`).transaction(current => {
+      const p = current ?? {};
+      // 同じ列が取られていたら中断
+      if (Object.values(p).some(v => v.col === S.pendingCol)) return;
+      // 満員なら中断
+      if (Object.keys(p).length >= S.meta.numPlayers) return;
+      myIdx = Object.keys(p).length;
+      p[myIdx] = {
+        name:     S.pendingName,
+        col:      S.pendingCol,
+        addedBar: S.pendingBar ?? null,
+        joinedAt: Date.now(),
+      };
+      return p;
+    });
+    if (!committed) {
+      alert('その位置はすでに選ばれています。別の位置を選んでください。');
+      btn.disabled = false;
+      btn.textContent = '参加する →';
+      showSub('sub-pos');
+      return;
+    }
+    S.myEntry = { playerIdx: myIdx, name: S.pendingName };
+    lsSetEntry(S.roomId, S.myEntry);
+    goWaiting();
+  } catch (e) {
+    alert('エラーが発生しました: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = '参加する →';
   }
 };
 
-// ══════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// WAITING フェーズ
+// ══════════════════════════════════════════════════════════
+function goWaiting() {
+  document.getElementById('waiting-title').textContent = S.meta.title;
+  updateWaiting();
+  goPhase('waiting');
+}
+function updateWaiting() {
+  const done  = S.players.length;
+  const total = S.meta.numPlayers;
+  document.getElementById('waiting-status').textContent =
+    `${done} / ${total} 人が参加しました。あと ${total - done} 人を待っています…`;
+  const wrap = document.getElementById('waiting-slots');
+  wrap.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const s = document.createElement('div');
+    s.className = 'slot' + (i < done ? ' done' : ' waiting');
+    s.textContent = i < done ? `✓ ${S.players[i].name}` : '待機中…';
+    wrap.appendChild(s);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
 // REVEAL フェーズ
-// ══════════════════════════════════════════
-const revDone = []; // {pts, color}[]
+// ══════════════════════════════════════════════════════════
+const revDone = [];
 
-function initReveal() {
-  computeRevealPaths();
+function goReveal() {
+  if (S.phase === 'reveal') return;
+  S.numLines = S.meta.numPlayers;
+  computePaths();
   revDone.length = 0;
-
   revCvs = document.getElementById('canvas-reveal');
   revCtx = revCvs.getContext('2d');
-  useCanvas(revCvs, revCtx);
-  fitCanvas(revCvs);
-
-  // 賞品ラベル・参加者名を表示してから少し待ってアニメ開始
+  useCvs(revCvs, revCtx);
+  fitCvs(revCvs);
   renderRevCanvas();
-  setTimeout(() => animateReveal(0), 700);
+  goPhase('reveal');
+  showPersonalBanner(); // 先に表示（アニメ待たず）
+  setTimeout(() => animReveal(0), 700);
 }
 
-function colLabelsForReveal() {
-  return Array.from({ length: S.numLines }, (_, i) => {
-    const p = S.players.find(pl => pl.col === i);
-    return p ? p.name : '';
-  });
+function colLabelsRev() {
+  return Array.from({ length: S.numLines }, (_, i) =>
+    S.players.find(p => p.col === i)?.name ?? ''
+  );
 }
-
 function renderRevCanvas(animPts, animColor, animT) {
-  useCanvas(revCvs, revCtx);
+  useCvs(revCvs, revCtx);
   drawAmida(revCvs, revCtx, {
     showPrizes:    true,
-    colLabels:     colLabelsForReveal(),
+    colLabels:     colLabelsRev(),
     highlightCol:  -1,
     pendingBar:    null,
     finishedPaths: revDone,
@@ -982,96 +1155,153 @@ function renderRevCanvas(animPts, animColor, animT) {
   });
 }
 
-function animateReveal(idx) {
-  if (idx >= S.numPlayers) {
-    showResults();
-    return;
-  }
+function animReveal(idx) {
+  if (idx >= S.players.length) { showResults(); return; }
   S.animating = true;
-  useCanvas(revCvs, revCtx);
-
+  useCvs(revCvs, revCtx);
   const color = COLORS[idx % COLORS.length];
-  const pts   = toCanvasPath(S.paths[idx]);
+  const pts   = toXY(S.paths[idx]);
   let t = 0;
-  const speed = 0.013;
-
   (function loop() {
-    t = Math.min(1, t + speed);
-    useCanvas(revCvs, revCtx);
+    t = Math.min(1, t + 0.013);
+    useCvs(revCvs, revCtx);
     renderRevCanvas(pts, color, t);
     if (t < 1) {
       requestAnimationFrame(loop);
     } else {
       revDone.push({ pts, color });
       S.animating = false;
-      setTimeout(() => animateReveal(idx + 1), 450);
+      setTimeout(() => animReveal(idx + 1), 450);
     }
   })();
+}
+
+function showPersonalBanner() {
+  const banner = document.getElementById('personal-banner');
+  // 開設者のみ（参加者でない）は表示しない
+  if (!S.myEntry) { banner.classList.remove('show'); return; }
+  const myIdx    = S.myEntry.playerIdx;
+  const resultCol = S.results[myIdx];
+  const isWin    = resultCol === 0;
+  banner.textContent = isWin
+    ? '🎉 おめでとうございます。当たりました！'
+    : '😢 残念。ハズレました';
+  banner.className = `personal-banner show ${isWin ? 'win' : 'lose'}`;
 }
 
 function showResults() {
   const list = document.getElementById('result-list');
   list.innerHTML = '';
-  const winners = [];
-
   S.players.forEach((p, i) => {
     const endCol = S.results[i];
-    const prize  = S.prizes[endCol] ?? '?';
+    const prize  = S.meta.prizes[endCol] ?? '?';
     const isWin  = endCol === 0;
-    if (isWin) winners.push(p.name);
-
     const div = document.createElement('div');
     div.className = 'result-item' + (isWin ? ' winner' : '');
     div.innerHTML = `
       <span class="result-name" style="color:${COLORS[i % COLORS.length]}">${p.name}</span>
       <span class="result-arrow">→</span>
-      <span class="result-prize">${prize}</span>
+      <span style="color:var(--gray-600)">${prize}</span>
       ${isWin ? '<span class="winner-tag">当選</span>' : ''}
     `;
     list.appendChild(div);
   });
-
-  const announce = document.getElementById('winner-announce');
-  if (winners.length) {
-    announce.textContent = `🎉 当選： ${winners.join('・')} さん！`;
-    announce.classList.add('show');
-  } else {
-    announce.classList.remove('show');
-  }
 }
 
-// ══════════════════════════════════════════
-// リサイズ対応
-// ══════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// リサイズ
+// ══════════════════════════════════════════════════════════
 window.addEventListener('resize', () => {
-  if (S.phase === 'join' && joinCvs) {
-    useCanvas(joinCvs, joinCtx);
-    fitCanvas(joinCvs);
-    renderJoinCanvas();
+  if (S.phase === 'join' && S.joinSub === 'bar' && joinCvs) {
+    useCvs(joinCvs, joinCtx); fitCvs(joinCvs); renderJoinCanvas();
   }
   if (S.phase === 'reveal' && revCvs) {
-    useCanvas(revCvs, revCtx);
-    fitCanvas(revCvs);
-    renderRevCanvas();
+    useCvs(revCvs, revCtx); fitCvs(revCvs); renderRevCanvas();
   }
 });
 
-// ══════════════════════════════════════════
-// もう一度
-// ══════════════════════════════════════════
-document.getElementById('btn-restart').onclick = () => {
-  S.animating = false;
-  revDone.length = 0;
-  initSetup();
+// ══════════════════════════════════════════════════════════
+// もう一度 / エラー
+// ══════════════════════════════════════════════════════════
+document.getElementById('btn-new').onclick = () => {
+  if (playersRef && playersListener) { playersRef.off('value', playersListener); }
+  history.pushState({}, '', location.pathname);
   document.getElementById('app-title').textContent = '🎋 あみだくじ';
   document.title = 'あみだくじ';
-  goPhase('setup');
+  revDone.length = 0;
+  S.roomId = null; S.meta = null; S.players = []; S.myEntry = null;
+  S.isOrganizer = false; S.animating = false;
+  initSetup();
+};
+document.getElementById('btn-go-home').onclick = () => {
+  history.pushState({}, '', location.pathname);
+  initSetup();
 };
 
-// ══════════════════════════════════════════
-// 初期化
-// ══════════════════════════════════════════
-initSetup();
+function showError(msg) {
+  document.getElementById('error-msg').textContent = msg;
+  goPhase('error');
+}
+
+// ══════════════════════════════════════════════════════════
+// 初期化（URL ルーティング）
+// ══════════════════════════════════════════════════════════
+async function init() {
+  const roomId = getRoomIdFromUrl();
+  if (!roomId) {
+    // トップページ → セットアップ
+    initSetup();
+    return;
+  }
+  if (!FB_READY) {
+    showError('Firebase の設定が必要です。index.html 内の FIREBASE_CONFIG を設定してください。');
+    return;
+  }
+  // ルーム読み込み
+  try {
+    const snap = await db.ref(`rooms/${roomId}`).get();
+    if (!snap.exists()) { showError('くじが見つかりませんでした。URLを確認してください。'); return; }
+    const data  = snap.val();
+    S.roomId    = roomId;
+    S.meta      = data.meta;
+    S.numLines  = data.meta.numPlayers;
+    S.players   = Object.keys(data.players ?? {})
+      .sort((a, b) => Number(a) - Number(b))
+      .map(k => data.players[k]);
+    document.getElementById('app-title').textContent = `🎋 ${S.meta.title}`;
+    document.title = S.meta.title;
+
+    const isOrg     = lsIsOrg(roomId);
+    const myEntry   = lsGetEntry(roomId);
+    S.isOrganizer   = isOrg;
+    S.myEntry       = myEntry;
+
+    const allJoined = S.players.length >= S.meta.numPlayers;
+
+    if (allJoined) {
+      // 全員参加済み → 即 reveal
+      goReveal();
+      return; // listenPlayers は不要
+    }
+
+    listenPlayers(roomId);
+
+    if (isOrg && !myEntry) {
+      // 開設者のロビー
+      startLobby(roomId);
+    } else if (myEntry) {
+      // 参加済み → 待機
+      goWaiting();
+    } else {
+      // 新規参加者
+      startJoin();
+    }
+  } catch (e) {
+    showError('読み込みエラー: ' + e.message);
+  }
+}
+
+init();
 </script>
 </body>
 </html>
