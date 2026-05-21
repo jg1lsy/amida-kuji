@@ -985,8 +985,8 @@ function updatePosBtns() {
 
 function selectPos(col) {
   S.pendingCol = col;
-  initBarStep();
   showSub('sub-bar');
+  initBarStep();
 }
 
 // 横棒追加ステップ
@@ -994,13 +994,12 @@ function initBarStep() {
   joinCvs = document.getElementById('canvas-join');
   joinCtx = joinCvs.getContext('2d');
   useCvs(joinCvs, joinCtx);
-  fitCvs(joinCvs);
   S.pendingBar = null;
   document.getElementById('bar-notice').textContent =
     `${S.pendingName} さん、横棒を1本タップで追加できます（省略してそのまま参加もOK）`;
   document.getElementById('canvas-join-msg').textContent = '';
   document.getElementById('btn-undo-bar').style.display = 'none';
-  renderJoinCanvas();
+  requestAnimationFrame(() => { fitCvs(joinCvs); renderJoinCanvas(); });
 }
 function renderJoinCanvas() {
   useCvs(joinCvs, joinCtx);
@@ -1130,11 +1129,13 @@ function goReveal() {
   revCvs = document.getElementById('canvas-reveal');
   revCtx = revCvs.getContext('2d');
   useCvs(revCvs, revCtx);
-  fitCvs(revCvs);
-  renderRevCanvas();
   goPhase('reveal');
   showPersonalBanner(); // 先に表示（アニメ待たず）
-  setTimeout(() => animReveal(0), 700);
+  requestAnimationFrame(() => {
+    fitCvs(revCvs);
+    renderRevCanvas();
+    setTimeout(() => animReveal(0), 700);
+  });
 }
 
 function colLabelsRev() {
