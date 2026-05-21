@@ -579,7 +579,7 @@ function generateBars(n) {
   const bars = [];
   for (let row = 0; row < NUM_ROWS; row++) {
     for (let col = 0; col < n - 1; col++) {
-      if (!occ[row].has(col) && !occ[row].has(col + 1) && Math.random() < 0.42) {
+      if (!occ[row].has(col) && !occ[row].has(col + 1) && Math.random() < 0.14) {
         bars.push({ row, leftCol: col });
         occ[row].add(col);
         occ[row].add(col + 1);
