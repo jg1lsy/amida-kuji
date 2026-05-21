@@ -947,8 +947,8 @@ function confirmName() {
   const name = document.getElementById('input-name').value.trim();
   if (!name) { document.getElementById('input-name').focus(); return; }
   S.pendingName = name;
-  updatePosBtns();
   showSub('sub-pos');
+  updatePosBtns();
 }
 document.getElementById('btn-name-ok').onclick = confirmName;
 document.getElementById('input-name').addEventListener('keydown', e => {
