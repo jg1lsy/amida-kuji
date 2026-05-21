@@ -1217,7 +1217,9 @@ window.addEventListener('resize', () => {
     useCvs(joinCvs, joinCtx); fitCvs(joinCvs); renderJoinCanvas();
   }
   if (S.phase === 'reveal' && revCvs) {
-    useCvs(revCvs, revCtx); fitCvs(revCvs); renderRevCanvas();
+    useCvs(revCvs, revCtx); fitCvs(revCvs);
+    revDone.forEach((entry, i) => { entry.pts = toXY(S.paths[i]); });
+    renderRevCanvas();
   }
 });
 
